@@ -1,0 +1,7 @@
+.ipynb_checkpoints
+__pycache__
+*.key.pem
+*.crt.pem
+esp32-mongoose-os/build
+esp32-mongoose-os/deps
+.DS_Store
