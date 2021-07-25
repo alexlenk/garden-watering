@@ -5,3 +5,5 @@ __pycache__
 */build
 */deps
 *DS_Store
+
+esp32-mongoose-os/.DS_Store
