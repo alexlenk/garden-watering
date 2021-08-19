@@ -68,15 +68,25 @@ let handleTrigger = function(msg, type) {
     let userdata = {
       type: type,
     };
-
+    
+    if(timer_id[type] !== 0) {
+      Timer.del(timer_id[type]);
+    }
+    
     timer_id[type] = Timer.set(1000 * duration, 0, function(userdata) {
       state_multi[userdata.type].on = false;
       setRelais();
       reportState();
       MQTT.pub(topic_trigger, JSON.stringify({"timer": "off", "type": userdata.type}), 0);
+      timer_id[userdata.type] = 0;
     }, userdata);
     MQTT.pub(topic_trigger, JSON.stringify({"timer": "on", "type": type, "timer_id": timer_id[type], "duration": duration}), 0);
   } else if (msg.mode === "switch") {
+    
+    if(timer_id[type] !== 0) {
+      Timer.del(timer_id[type]);
+    }
+    
     state_multi[type].on = msg.on;
     setRelais();
     reportState();
@@ -84,24 +94,26 @@ let handleTrigger = function(msg, type) {
 };
 
 MQTT.sub(topic_trigger, function(conn, topic, msg) {
-  print(msg);
+  //print(msg);
   msg = JSON.parse(msg);
-  if(msg.type === "lawn") {
-    msg.type = "lawn";
-  } else if (msg.type === "flower") {
-    msg.type = "flower";
-  } else {
-    msg.type = "all";
-  }
-  
-  if(msg.type === "all") {
-    for (let key in relais_array) {
-      handleTrigger(msg, key);
+  if(msg.mode === "duration" || msg.mode === "switch") {
+    if(msg.type === "lawn") {
+      msg.type = "lawn";
+    } else if (msg.type === "flower") {
+      msg.type = "flower";
+    } else {
+      msg.type = "all";
     }
-  } else {
-  	handleTrigger(msg, msg.type);
+
+    if(msg.type === "all") {
+      for (let key in relais_array) {
+        handleTrigger(msg, key);
+      }
+    } else {
+      handleTrigger(msg, msg.type);
+    }
   }
-  
+
 }, null);
 
 let reportState = function() {
@@ -159,16 +171,19 @@ Event.on(Event.CLOUD_CONNECTED, function() {
   
   MQTT.pub(topic_trigger, JSON.stringify({"status": "connecting", "test_successful": test_successful}), 0);
 
-  if(test_successful === false) {
+  /*if(test_successful === false) {
     MQTT.pub(topic_trigger, JSON.stringify({"status": "starting test"}), 0);
+    
     state_multi["lawn"].on = true;
     setRelais();
-    state_multi["lawn"].on = false;
-    Sys.usleep(1000);
-    setRelais();
     test_successful = true;
-    MQTT.pub(topic_trigger, JSON.stringify({"status": "test ended"}), 0);
-  }
+    
+    Timer.set(1000, 0, function() {
+      state_multi["lawn"].on = false;
+      setRelais();
+      MQTT.pub(topic_trigger, JSON.stringify({"status": "test ended"}), 0);
+    }, null);
+  }*/
   
   /*updateState();
   reportState();
